@@ -95,38 +95,36 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
       return remaining.filter(m => mustPlay.filter(p => getPlaying(m).includes(p)).length === best)
     })()
 
-    // Ideal streak before sitting = playing slots / sitting slots per match,
-    // minimum 2 (keeps n≥7 behaviour stable; main benefit is for n=5 where ideal=4).
-    // 5 players → 4, 6 players → 2, 7+ → clamped to 2
+    // Ideal streak before sitting = playing slots / sitting slots per match.
+    // 5 players → 4, 6 players → 2, 7+ → 1
     const sittersPerMatch = players.length - 4
-    const idealStreak = Math.max(2, Math.round(4 / sittersPerMatch))
+    const idealStreak = Math.max(1, Math.round(4 / sittersPerMatch))
 
     const score = (m: Match) => {
       const sittingOut = players.filter(p => !getPlaying(m).includes(p))
-      // Primary: prefer sitters who have paused LEAST (equalize sit-outs)
-      const sitCountScore = Math.max(...sittingOut.map(p => satCount[p]))
-      // Secondary: prefer sitters whose streak matches the ideal rotation.
-      // Too early (s < ideal): double penalty to strongly avoid forcing early sits.
-      // Overdue (s > ideal): linear penalty proportional to how many rounds late.
-      const streakScore = Math.max(...sittingOut.map(p => {
-        const s = streak[p]
-        if (s < idealStreak) return (idealStreak - s) * 2
-        return s - idealStreak
-      }))
-      // Tertiary: prefer those who sat out longest ago
+      // Primary: avoid over-sitting anyone (don't let max satCount grow unevenly)
+      const sitCountMax = Math.max(...sittingOut.map(p => satCount[p]))
+      // Secondary: actively catch up under-paused players (prefer group containing
+      // the player who has sat the fewest times so far)
+      const sitCountMin = Math.min(...sittingOut.map(p => satCount[p]))
+      // Tertiary: penalise making someone sit before they've hit their ideal streak
+      // (too early = bad). Overdue players get penalty 0 — never avoid them.
+      const streakScore = Math.max(...sittingOut.map(p => Math.max(0, idealStreak - streak[p])))
+      // Quaternary: prefer those who sat out longest ago
       const sitRecencyScore = Math.max(...sittingOut.map(p => lastSatOut[p]))
-      // Quaternary: prefer pairs that haven't played together recently
+      // Quinary: prefer pairs that haven't played together recently
       const pairScore = Math.max(
         lastPaired[pairKey(m.team1[0], m.team1[1])] ?? -Infinity,
         lastPaired[pairKey(m.team2[0], m.team2[1])] ?? -Infinity,
       )
-      return { sitCountScore, streakScore, sitRecencyScore, pairScore }
+      return { sitCountMax, sitCountMin, streakScore, sitRecencyScore, pairScore }
     }
 
     const chosen = pool.reduce((best, m) => {
       const ms = score(m)
       const bs = score(best)
-      if (ms.sitCountScore !== bs.sitCountScore) return ms.sitCountScore < bs.sitCountScore ? m : best
+      if (ms.sitCountMax !== bs.sitCountMax) return ms.sitCountMax < bs.sitCountMax ? m : best
+      if (ms.sitCountMin !== bs.sitCountMin) return ms.sitCountMin < bs.sitCountMin ? m : best
       if (ms.streakScore !== bs.streakScore) return ms.streakScore < bs.streakScore ? m : best
       if (ms.sitRecencyScore !== bs.sitRecencyScore) return ms.sitRecencyScore < bs.sitRecencyScore ? m : best
       return ms.pairScore < bs.pairScore ? m : best
