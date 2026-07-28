@@ -46,8 +46,7 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
   const remaining = [...unscheduled]
   const result: Match[] = []
 
-  // lastSatOut[p]  = step index when p last sat out  (-Infinity = never)
-  // satCount[p]  = how many times p has sat out so far (primary fairness metric)
+  // satCount[p] = how many times p has sat out so far (primary fairness metric)
   const satCount: Record<string, number> = {}
   players.forEach(p => (satCount[p] = 0))
 
@@ -55,15 +54,24 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
   const lastSatOut: Record<string, number> = {}
   players.forEach(p => (lastSatOut[p] = -Infinity))
 
-  // lastPaired["A|B"] = step when this pair last played together (tertiary)
+  // streak[p] = how many consecutive matches p has played in a row
+  const streak: Record<string, number> = {}
+  players.forEach(p => (streak[p] = 0))
+
+  // lastPaired["A|B"] = step when this pair last played together (quaternary)
   const lastPaired: Record<string, number> = {}
   const pairKey = (a: string, b: string) => [a, b].sort().join('|')
 
   const recordMatch = (m: Match, step: number) => {
     const playing = new Set(getPlaying(m))
-    players.filter(p => !playing.has(p)).forEach(p => {
-      satCount[p]++
-      lastSatOut[p] = step
+    players.forEach(p => {
+      if (playing.has(p)) {
+        streak[p]++
+      } else {
+        satCount[p]++
+        lastSatOut[p] = step
+        streak[p] = 0
+      }
     })
     lastPaired[pairKey(m.team1[0], m.team1[1])] = step
     lastPaired[pairKey(m.team2[0], m.team2[1])] = step
@@ -80,8 +88,7 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
 
     const valid = remaining.filter(m => mustPlay.every(p => getPlaying(m).includes(p)))
 
-    // Fallback (gdy valid jest puste): minimalizujemy naruszenia wybierając mecze
-    // które zawierają jak najwięcej graczy z mustPlay
+    // Fallback: minimize violations by picking matches with most mustPlay players
     const pool = (() => {
       if (valid.length > 0) return valid
       const best = Math.max(...remaining.map(m => mustPlay.filter(p => getPlaying(m).includes(p)).length))
@@ -92,20 +99,29 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
       const sittingOut = players.filter(p => !getPlaying(m).includes(p))
       // Primary: prefer sitters who have paused LEAST (equalize sit-outs)
       const sitCountScore = Math.max(...sittingOut.map(p => satCount[p]))
-      // Secondary: among equal count, prefer those who sat out longest ago
+      // Secondary: prefer sitters with streak=2 (ideal), penalize streak=1 (too early) or streak≥3 (overdue)
+      // 0 = ideal (streak 2), 1 = overdue (streak 3+), 2 = too early (streak 1)
+      const streakScore = Math.max(...sittingOut.map(p => {
+        const s = streak[p]
+        if (s === 2) return 0
+        if (s >= 3) return 1
+        return 2 // s === 1: played only once, shouldn't sit yet
+      }))
+      // Tertiary: prefer those who sat out longest ago
       const sitRecencyScore = Math.max(...sittingOut.map(p => lastSatOut[p]))
-      // Tertiary: prefer pairs that haven't played together recently
+      // Quaternary: prefer pairs that haven't played together recently
       const pairScore = Math.max(
         lastPaired[pairKey(m.team1[0], m.team1[1])] ?? -Infinity,
         lastPaired[pairKey(m.team2[0], m.team2[1])] ?? -Infinity,
       )
-      return { sitCountScore, sitRecencyScore, pairScore }
+      return { sitCountScore, streakScore, sitRecencyScore, pairScore }
     }
 
     const chosen = pool.reduce((best, m) => {
       const ms = score(m)
       const bs = score(best)
       if (ms.sitCountScore !== bs.sitCountScore) return ms.sitCountScore < bs.sitCountScore ? m : best
+      if (ms.streakScore !== bs.streakScore) return ms.streakScore < bs.streakScore ? m : best
       if (ms.sitRecencyScore !== bs.sitRecencyScore) return ms.sitRecencyScore < bs.sitRecencyScore ? m : best
       return ms.pairScore < bs.pairScore ? m : best
     })

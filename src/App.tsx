@@ -367,12 +367,39 @@ function App() {
             {filtered.map((match) => {
               const playing = new Set([match.team1[0], match.team1[1], match.team2[0], match.team2[1]])
               const pausing = playerNames.filter(p => !playing.has(p))
+              const matchIdx = matches.indexOf(match)
+              const pausingWithStreak = pausing.map(p => {
+                let streak = 0
+                for (let i = matchIdx - 1; i >= 0; i--) {
+                  const prev = matches[i]
+                  if ([prev.team1[0], prev.team1[1], prev.team2[0], prev.team2[1]].includes(p)) {
+                    streak++
+                  } else {
+                    break
+                  }
+                }
+                return { name: p, streak }
+              })
               return (
                 <div key={match.id}>
                   {pausing.length > 0 && (
                     <div className="pausing-bar">
                       <span className="pausing-label">pauzuje:</span>
-                      <span className="pausing-names">{pausing.join(', ')}</span>
+                      <span className="pausing-names">
+                        {pausingWithStreak.map(({ name, streak }, idx) => {
+                          const note = streak === 0
+                            ? 'pauzował'
+                            : streak === 1
+                              ? 'grał 1 raz'
+                              : `grał ${streak} razy z rzędu`
+                          return (
+                            <span key={name}>
+                              {idx > 0 && ', '}
+                              {name} <span className="pausing-streak">({note})</span>
+                            </span>
+                          )
+                        })}
+                      </span>
                     </div>
                   )}
                   {(() => {

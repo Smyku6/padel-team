@@ -737,6 +737,12 @@ h1 {
   color: #666;
 }
 
+.pausing-streak {
+  font-weight: 400;
+  color: #444;
+  font-size: 0.7rem;
+}
+
 .match-card {
   border: 1px solid #2a2a2a;
   border-radius: 12px;
