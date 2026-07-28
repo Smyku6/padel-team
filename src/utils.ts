@@ -79,7 +79,14 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
     const mustPlay = players.filter(p => !prevPlaying.has(p))
 
     const valid = remaining.filter(m => mustPlay.every(p => getPlaying(m).includes(p)))
-    const pool = valid.length > 0 ? valid : remaining
+
+    // Fallback (gdy valid jest puste): minimalizujemy naruszenia wybierając mecze
+    // które zawierają jak najwięcej graczy z mustPlay
+    const pool = (() => {
+      if (valid.length > 0) return valid
+      const best = Math.max(...remaining.map(m => mustPlay.filter(p => getPlaying(m).includes(p)).length))
+      return remaining.filter(m => mustPlay.filter(p => getPlaying(m).includes(p)).length === best)
+    })()
 
     const score = (m: Match) => {
       const sittingOut = players.filter(p => !getPlaying(m).includes(p))
