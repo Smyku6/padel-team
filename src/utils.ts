@@ -95,17 +95,23 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
       return remaining.filter(m => mustPlay.filter(p => getPlaying(m).includes(p)).length === best)
     })()
 
+    // Ideal streak before sitting = playing slots / sitting slots per match,
+    // minimum 2 (keeps n≥7 behaviour stable; main benefit is for n=5 where ideal=4).
+    // 5 players → 4, 6 players → 2, 7+ → clamped to 2
+    const sittersPerMatch = players.length - 4
+    const idealStreak = Math.max(2, Math.round(4 / sittersPerMatch))
+
     const score = (m: Match) => {
       const sittingOut = players.filter(p => !getPlaying(m).includes(p))
       // Primary: prefer sitters who have paused LEAST (equalize sit-outs)
       const sitCountScore = Math.max(...sittingOut.map(p => satCount[p]))
-      // Secondary: prefer sitters with streak=2 (ideal), penalize streak=1 (too early) or streak≥3 (overdue)
-      // 0 = ideal (streak 2), 1 = overdue (streak 3+), 2 = too early (streak 1)
+      // Secondary: prefer sitters whose streak matches the ideal rotation.
+      // Too early (s < ideal): double penalty to strongly avoid forcing early sits.
+      // Overdue (s > ideal): linear penalty proportional to how many rounds late.
       const streakScore = Math.max(...sittingOut.map(p => {
         const s = streak[p]
-        if (s === 2) return 0
-        if (s >= 3) return 1
-        return 2 // s === 1: played only once, shouldn't sit yet
+        if (s < idealStreak) return (idealStreak - s) * 2
+        return s - idealStreak
       }))
       // Tertiary: prefer those who sat out longest ago
       const sitRecencyScore = Math.max(...sittingOut.map(p => lastSatOut[p]))
