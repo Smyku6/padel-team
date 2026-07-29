@@ -463,7 +463,7 @@ function App() {
           <div className="filter-row">
             {(['all', 'pending', 'done'] as const).map(f => (
               <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-                {f === 'all' ? 'Wszystkie' : f === 'pending' ? 'Do rozegrania' : 'Zakończone'}
+                {f === 'all' ? 'Wszystkie' : f === 'pending' ? (readOnly ? 'Nie odbyły się' : 'Do rozegrania') : 'Zakończone'}
               </button>
             ))}
           </div>
@@ -525,7 +525,7 @@ function App() {
                       }
                     })() : null
                     return (
-                      <div className="match-card">
+                      <div className={`match-card${readOnly && !match.timestamp ? ' match-card--unplayed' : ''}`}>
                         <div className="match-header">
                           <span className="match-header-num">Mecz #{matches.indexOf(match) + 1}</span>
                           {timeInfo && (

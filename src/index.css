@@ -864,6 +864,11 @@ h1 {
   position: relative;
 }
 
+.match-card--unplayed {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
 .match-header {
   display: flex;
   align-items: baseline;
