@@ -141,15 +141,60 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
 // Assigns which team plays on which side of the court so that every player
 // ends up with (nearly) equal left-side and right-side match counts.
 function assignSides(players: string[], scheduled: Match[]): Match[] {
-  // sideBalance[p] = leftCount[p] - rightCount[p]; target: 0 for everyone
+  // For small tournaments (≤20 matches) enumerate all 2^n side assignments and
+  // pick the one with the smallest max |leftCount - rightCount| across players.
+  // For larger tournaments fall back to a greedy lexicographic heuristic.
+  if (scheduled.length <= 20) {
+    return assignSidesOptimal(players, scheduled)
+  }
+  return assignSidesGreedy(players, scheduled)
+}
+
+function assignSidesOptimal(players: string[], scheduled: Match[]): Match[] {
+  const n = scheduled.length
+  let bestImb = Infinity
+  let bestMask = 0
+
+  for (let mask = 0; mask < (1 << n); mask++) {
+    const bal: Record<string, number> = {}
+    players.forEach(p => (bal[p] = 0))
+    for (let i = 0; i < n; i++) {
+      const m = scheduled[i]
+      const swapped = !!((mask >> i) & 1)
+      ;(swapped ? m.team2 : m.team1).forEach(p => bal[p]++)
+      ;(swapped ? m.team1 : m.team2).forEach(p => bal[p]--)
+    }
+    const imb = Math.max(...players.map(p => Math.abs(bal[p])))
+    if (imb < bestImb) { bestImb = imb; bestMask = mask }
+    if (bestImb === 0) break
+  }
+
+  return scheduled.map((m, i) => {
+    const swapped = !!((bestMask >> i) & 1)
+    if (!swapped) return m
+    const leftTeam = m.team2, rightTeam = m.team1
+    return {
+      ...m,
+      id: `${leftTeam[0]}-${leftTeam[1]}_vs_${rightTeam[0]}-${rightTeam[1]}`,
+      team1: leftTeam,
+      team2: rightTeam,
+    }
+  })
+}
+
+function assignSidesGreedy(players: string[], scheduled: Match[]): Match[] {
   const sideBalance: Record<string, number> = {}
   players.forEach(p => (sideBalance[p] = 0))
 
   return scheduled.map(m => {
-    // Sum of |balance + delta| for each player given a side assignment
-    const cost = (leftTeam: [string, string], rightTeam: [string, string]) =>
-      leftTeam.reduce((s, p) => s + Math.abs(sideBalance[p] + 1), 0) +
-      rightTeam.reduce((s, p) => s + Math.abs(sideBalance[p] - 1), 0)
+    // Lexicographic cost: minimise max individual imbalance first, then total.
+    const cost = (leftTeam: [string, string], rightTeam: [string, string]) => {
+      const abs = [
+        ...leftTeam.map(p  => Math.abs(sideBalance[p] + 1)),
+        ...rightTeam.map(p => Math.abs(sideBalance[p] - 1)),
+      ]
+      return Math.max(...abs) * 100 + abs.reduce((s, v) => s + v, 0)
+    }
 
     const swapped = cost(m.team2, m.team1) < cost(m.team1, m.team2)
     const leftTeam  = swapped ? m.team2 : m.team1
