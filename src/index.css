@@ -207,6 +207,14 @@ h1 {
   letter-spacing: 0.04em;
 }
 
+.session-title-date {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #888;
+  margin-top: 0.1rem;
+}
+
 .players-bar {
   display: flex;
   flex-wrap: wrap;

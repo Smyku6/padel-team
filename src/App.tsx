@@ -67,8 +67,8 @@ function App() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!readOnly || !startedAt) return
+  const sessionTitle = (() => {
+    if (!readOnly || !startedAt) return null
     const d = new Date(startedAt)
     const rounded = Math.round(d.getMinutes() / 30) * 30
     d.setMinutes(rounded, 0, 0)
@@ -78,8 +78,13 @@ function App() {
     const month = d.toLocaleDateString('pl-PL', { month: 'long' })
     const year = d.getFullYear()
     const time = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
-    document.title = `Padel Team - ${cap} ${day}. ${month} ${year} ${time}`
-  }, [readOnly, startedAt])
+    return `${cap} ${day}. ${month} ${year}, ${time}`
+  })()
+
+  useEffect(() => {
+    if (!sessionTitle) return
+    document.title = `Padel Team - ${sessionTitle}`
+  }, [sessionTitle])
 
   function handlePlayerCountChange(count: number) {
     setPlayerCount(count)
@@ -414,7 +419,13 @@ function App() {
   return (
     <div className="container">
       <div className="header-row">
-        <h1>Padel Team {readOnly && <span className="readonly-badge">tylko do odczytu</span>}</h1>
+        <h1>
+          {sessionTitle ? (
+            <>Padel Team <span className="session-title-date">{sessionTitle}</span></>
+          ) : (
+            'Padel Team'
+          )}
+        </h1>
         <div className="header-actions">
           {!readOnly && <button className="btn-secondary" onClick={handleImport}>Import JSON</button>}
           {!readOnly && <button className="btn-secondary" onClick={handleExport}>Eksport JSON</button>}
