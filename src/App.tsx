@@ -262,8 +262,8 @@ function App() {
   const PAUSE_POINTS = 11
 
   const ranking = useMemo(() => {
-    const stats: Record<string, { wins: number; points: number; pauses: number; played: number }> = {}
-    playerNames.forEach(p => (stats[p] = { wins: 0, points: 0, pauses: 0, played: 0 }))
+    const stats: Record<string, { wins: number; points: number; gamePoints: number; pauses: number; played: number }> = {}
+    playerNames.forEach(p => (stats[p] = { wins: 0, points: 0, gamePoints: 0, pauses: 0, played: 0 }))
 
     for (const m of matches) {
       const playing = new Set([m.team1[0], m.team1[1], m.team2[0], m.team2[1]])
@@ -277,11 +277,13 @@ function App() {
         for (const p of m.team1) {
           stats[p].played++
           stats[p].points += s1
+          stats[p].gamePoints += s1
           if (t1won) stats[p].wins++
         }
         for (const p of m.team2) {
           stats[p].played++
           stats[p].points += s2
+          stats[p].gamePoints += s2
           if (!t1won) stats[p].wins++
         }
         for (const p of playerNames) {
@@ -293,9 +295,22 @@ function App() {
       }
     }
 
-    return playerNames
-      .map(p => ({ name: p, ...stats[p], total: stats[p].points }))
-      .sort((a, b) => b.total - a.total || b.wins - a.wins)
+    const rows = playerNames.map(p => ({
+      name: p,
+      ...stats[p],
+      total: stats[p].points,
+      avgPerMatch: stats[p].played > 0 ? stats[p].gamePoints / stats[p].played : 0,
+    }))
+
+    const playedCounts = rows.map(r => r.played)
+    const unevenMatches = Math.min(...playedCounts) !== Math.max(...playedCounts)
+
+    return {
+      rows: unevenMatches
+        ? [...rows].sort((a, b) => b.avgPerMatch - a.avgPerMatch || b.wins - a.wins)
+        : [...rows].sort((a, b) => b.total - a.total || b.wins - a.wins),
+      unevenMatches,
+    }
   }, [matches, playerNames])
 
   const pairStats = useMemo(() => {
@@ -588,6 +603,11 @@ function App() {
 
       {tab === 'ranking' && (
         <div className="ranking-wrap">
+          {ranking.unevenMatches && (
+            <div className="ranking-notice">
+              Gracze rozegrali różną liczbę meczów — ranking według średniej punktów z meczu (bez pauz).
+            </div>
+          )}
           <table className="ranking-table">
             <thead>
               <tr>
@@ -598,10 +618,13 @@ function App() {
                 <th className="rank-col-num" title="Przegrane">Przegrane</th>
                 <th className="rank-col-num" title={`Pauzy (każda = ${PAUSE_POINTS} pkt)`}>Pauzy</th>
                 <th className="rank-col-num" title="Łączne punkty (mecze + pauzy)">Punkty</th>
+                {ranking.unevenMatches && (
+                  <th className="rank-col-num rank-col-avg" title="Średnia punktów z rozegranych meczów">Śr./mecz</th>
+                )}
               </tr>
             </thead>
             <tbody>
-              {ranking.map((r, i) => {
+              {ranking.rows.map((r, i) => {
                 const c = colorOf(r.name)
                 const isFirst = i === 0 && r.total > 0
                 return (
@@ -618,6 +641,9 @@ function App() {
                     <td className="rank-num rank-losses">{r.played - r.wins}</td>
                     <td className="rank-num rank-pauses">{r.pauses || '–'}</td>
                     <td className="rank-num rank-total">{r.total}</td>
+                    {ranking.unevenMatches && (
+                      <td className="rank-num rank-avg">{r.played > 0 ? r.avgPerMatch.toFixed(1) : '–'}</td>
+                    )}
                   </tr>
                 )
               })}
@@ -642,7 +668,7 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {ranking.map(r => r.name).map(p => {
+                    {ranking.rows.map(r => r.name).map(p => {
                       const c = colorOf(p)
                       return (
                         <tr key={p}>
