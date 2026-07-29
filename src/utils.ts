@@ -33,7 +33,7 @@ export function generateMatches(players: string[]): Match[] {
     }
   }
 
-  return scheduleMatches(players, matches)
+  return assignSides(players, scheduleMatches(players, matches))
 }
 
 function getPlaying(m: Match): string[] {
@@ -136,6 +136,36 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
   }
 
   return result
+}
+
+// Assigns which team plays on which side of the court so that every player
+// ends up with (nearly) equal left-side and right-side match counts.
+function assignSides(players: string[], scheduled: Match[]): Match[] {
+  // sideBalance[p] = leftCount[p] - rightCount[p]; target: 0 for everyone
+  const sideBalance: Record<string, number> = {}
+  players.forEach(p => (sideBalance[p] = 0))
+
+  return scheduled.map(m => {
+    // Sum of |balance + delta| for each player given a side assignment
+    const cost = (leftTeam: [string, string], rightTeam: [string, string]) =>
+      leftTeam.reduce((s, p) => s + Math.abs(sideBalance[p] + 1), 0) +
+      rightTeam.reduce((s, p) => s + Math.abs(sideBalance[p] - 1), 0)
+
+    const swapped = cost(m.team2, m.team1) < cost(m.team1, m.team2)
+    const leftTeam  = swapped ? m.team2 : m.team1
+    const rightTeam = swapped ? m.team1 : m.team2
+
+    leftTeam.forEach(p  => sideBalance[p]++)
+    rightTeam.forEach(p => sideBalance[p]--)
+
+    if (!swapped) return m
+    return {
+      ...m,
+      id: `${leftTeam[0]}-${leftTeam[1]}_vs_${rightTeam[0]}-${rightTeam[1]}`,
+      team1: leftTeam,
+      team2: rightTeam,
+    }
+  })
 }
 
 export function saveToStorage(key: string, data: unknown) {
