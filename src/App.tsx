@@ -621,6 +621,16 @@ function App() {
             return { p, path, color: colorOf(p).color }
           })
 
+        const courtStats = playerNames
+          .map(p => {
+            const count = matches.filter(m =>
+              m.timestamp && m.startTimestamp &&
+              (m.team1.includes(p) || m.team2.includes(p))
+            ).length
+            return { p, total: courtTime[p], count, avg: count > 0 ? courtTime[p] / count : 0 }
+          })
+          .sort((a, b) => b.total - a.total)
+
         return (
           <div className="chart-wrap">
             <div className="chart-donut-wrap">
@@ -646,6 +656,32 @@ function App() {
                 )
               })}
             </div>
+            <table className="court-stats-table">
+              <thead>
+                <tr>
+                  <th className="cst-name">Gracz</th>
+                  <th className="cst-num">Łącznie</th>
+                  <th className="cst-num">Mecze</th>
+                  <th className="cst-num">Śr. / mecz</th>
+                </tr>
+              </thead>
+              <tbody>
+                {courtStats.map(({ p, total, count, avg }, i) => {
+                  const c = colorOf(p)
+                  return (
+                    <tr key={p} className="cst-row">
+                      <td className="cst-name">
+                        <span className="rank-dot" style={{ background: c.color }} />
+                        {p}
+                      </td>
+                      <td className="cst-num cst-total">{fmtMs(total)}</td>
+                      <td className="cst-num">{count}</td>
+                      <td className="cst-num cst-avg">{count > 0 ? fmtMs(avg) : '–'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )
       })()}
