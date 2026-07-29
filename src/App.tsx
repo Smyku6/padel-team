@@ -388,18 +388,7 @@ function App() {
         <h1>Padel Team {readOnly && <span className="readonly-badge">tylko do odczytu</span>}</h1>
         <div className="header-actions">
           {!readOnly && <button className="btn-secondary" onClick={handleImport}>Import JSON</button>}
-          <button className="btn-secondary" onClick={handleExport}>Eksport JSON</button>
-          {shareId && (
-            <button className="btn-share" onClick={() => {
-              const url = `${window.location.origin}${window.location.pathname}?s=${shareId}`
-              navigator.clipboard.writeText(url).then(() => {
-                setShareCopied(true)
-                setTimeout(() => setShareCopied(false), 2000)
-              })
-            }}>
-              {shareCopied ? 'Skopiowano!' : 'Kopiuj link'}
-            </button>
-          )}
+          {!readOnly && <button className="btn-secondary" onClick={handleExport}>Eksport JSON</button>}
           {!readOnly && <button className="btn-danger" onClick={handleReset}>Reset</button>}
         </div>
       </div>
