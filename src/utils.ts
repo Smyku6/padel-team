@@ -58,9 +58,11 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
   const streak: Record<string, number> = {}
   players.forEach(p => (streak[p] = 0))
 
-  // lastPaired["A|B"] = step when this pair last played together (quaternary)
-  const lastPaired: Record<string, number> = {}
   const pairKey = (a: string, b: string) => [a, b].sort().join('|')
+  // pairCount["A|B"] = how many times this pair has played together
+  const pairCount: Record<string, number> = {}
+  // lastPaired["A|B"] = step when this pair last played together (tie-break)
+  const lastPaired: Record<string, number> = {}
 
   const recordMatch = (m: Match, step: number) => {
     const playing = new Set(getPlaying(m))
@@ -73,8 +75,12 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
         streak[p] = 0
       }
     })
-    lastPaired[pairKey(m.team1[0], m.team1[1])] = step
-    lastPaired[pairKey(m.team2[0], m.team2[1])] = step
+    const k1 = pairKey(m.team1[0], m.team1[1])
+    const k2 = pairKey(m.team2[0], m.team2[1])
+    pairCount[k1] = (pairCount[k1] ?? 0) + 1
+    pairCount[k2] = (pairCount[k2] ?? 0) + 1
+    lastPaired[k1] = step
+    lastPaired[k2] = step
   }
 
   const first = remaining.splice(0, 1)[0]
@@ -112,12 +118,17 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
       const streakScore = Math.max(...sittingOut.map(p => Math.max(0, idealStreak - streak[p])))
       // Quaternary: prefer those who sat out longest ago
       const sitRecencyScore = Math.max(...sittingOut.map(p => lastSatOut[p]))
-      // Quinary: prefer pairs that haven't played together recently
-      const pairScore = Math.max(
+      // Quinary: prefer pairs that have played together fewer times (equalise pair counts)
+      const pairCountScore = Math.max(
+        pairCount[pairKey(m.team1[0], m.team1[1])] ?? 0,
+        pairCount[pairKey(m.team2[0], m.team2[1])] ?? 0,
+      )
+      // Senary: among equal pair counts, prefer pairs that played together least recently
+      const pairRecencyScore = Math.max(
         lastPaired[pairKey(m.team1[0], m.team1[1])] ?? -Infinity,
         lastPaired[pairKey(m.team2[0], m.team2[1])] ?? -Infinity,
       )
-      return { sitCountMax, sitCountMin, streakScore, sitRecencyScore, pairScore }
+      return { sitCountMax, sitCountMin, streakScore, sitRecencyScore, pairCountScore, pairRecencyScore }
     }
 
     const chosen = pool.reduce((best, m) => {
@@ -127,7 +138,8 @@ function scheduleMatches(players: string[], unscheduled: Match[]): Match[] {
       if (ms.sitCountMin !== bs.sitCountMin) return ms.sitCountMin < bs.sitCountMin ? m : best
       if (ms.streakScore !== bs.streakScore) return ms.streakScore < bs.streakScore ? m : best
       if (ms.sitRecencyScore !== bs.sitRecencyScore) return ms.sitRecencyScore < bs.sitRecencyScore ? m : best
-      return ms.pairScore < bs.pairScore ? m : best
+      if (ms.pairCountScore !== bs.pairCountScore) return ms.pairCountScore < bs.pairCountScore ? m : best
+      return ms.pairRecencyScore < bs.pairRecencyScore ? m : best
     })
 
     remaining.splice(remaining.indexOf(chosen), 1)

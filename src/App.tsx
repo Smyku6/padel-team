@@ -24,7 +24,7 @@ function App() {
   const [playerNames, setPlayerNames] = useState<string[]>(DEFAULT_NAMES)
   const [matches, setMatches] = useState<Match[]>([])
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all')
-  const [tab, setTab] = useState<'matches' | 'ranking' | 'chart'>('matches')
+  const [tab, setTab] = useState<'matches' | 'ranking' | 'chart' | 'pairs'>('matches')
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [endedAt, setEndedAt] = useState<number | null>(null)
   const [showEndModal, setShowEndModal] = useState(false)
@@ -205,6 +205,25 @@ function App() {
     return time
   }, [matches, playerNames])
 
+  const pauseTime = useMemo(() => {
+    const time: Record<string, number> = {}
+    const count: Record<string, number> = {}
+    playerNames.forEach(p => { time[p] = 0; count[p] = 0 })
+    for (const m of matches) {
+      if (m.timestamp && m.startTimestamp) {
+        const dur = m.timestamp - m.startTimestamp
+        const playing = new Set([...m.team1, ...m.team2])
+        playerNames.forEach(p => {
+          if (!playing.has(p)) {
+            time[p] += dur
+            count[p]++
+          }
+        })
+      }
+    }
+    return { time, count }
+  }, [matches, playerNames])
+
   const PAUSE_POINTS = 11
 
   const ranking = useMemo(() => {
@@ -243,6 +262,43 @@ function App() {
       .map(p => ({ name: p, ...stats[p], total: stats[p].points }))
       .sort((a, b) => b.total - a.total || b.wins - a.wins)
   }, [matches, playerNames])
+
+  const pairStats = useMemo(() => {
+    const stats: Record<string, { played: number; wins: number; points: number; against: number }> = {}
+    const pairKey = (a: string, b: string) => [a, b].sort().join('|')
+
+    for (const m of matches) {
+      const isCompleted = m.timestamp !== null && m.score1 !== '' && m.score2 !== ''
+      if (!isCompleted) continue
+      const s1 = parseInt(m.score1)
+      const s2 = parseInt(m.score2)
+      const t1won = s1 > s2
+
+      const key1 = pairKey(m.team1[0], m.team1[1])
+      const key2 = pairKey(m.team2[0], m.team2[1])
+
+      if (!stats[key1]) stats[key1] = { played: 0, wins: 0, points: 0, against: 0 }
+      if (!stats[key2]) stats[key2] = { played: 0, wins: 0, points: 0, against: 0 }
+
+      stats[key1].played++
+      stats[key1].points += s1
+      stats[key1].against += s2
+      if (t1won) stats[key1].wins++
+
+      stats[key2].played++
+      stats[key2].points += s2
+      stats[key2].against += s1
+      if (!t1won) stats[key2].wins++
+    }
+
+    return Object.entries(stats)
+      .map(([key, s]) => {
+        const [a, b] = key.split('|')
+        const winRate = s.played > 0 ? (s.wins / s.played) * 100 : 0
+        return { key, a, b, ...s, winRate }
+      })
+      .sort((x, y) => y.winRate - x.winRate || y.wins - x.wins || y.played - x.played)
+  }, [matches])
 
   const fmtMs = (ms: number) => {
     const s = Math.floor(ms / 1000)
@@ -376,6 +432,7 @@ function App() {
         <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}>Mecze</button>
         <button className={`tab-btn ${tab === 'ranking' ? 'active' : ''}`} onClick={() => setTab('ranking')}>Ranking</button>
         <button className={`tab-btn ${tab === 'chart' ? 'active' : ''}`} onClick={() => setTab('chart')}>Czas na korcie</button>
+        <button className={`tab-btn ${tab === 'pairs' ? 'active' : ''}`} onClick={() => setTab('pairs')}>Pary</button>
       </div>
 
       {tab === 'matches' && (
@@ -589,6 +646,63 @@ function App() {
         </div>
       )}
 
+      {tab === 'pairs' && (
+        <div className="pairs-tab">
+          {pairStats.length === 0 ? (
+            <div className="chart-empty">
+              <p>Zagraj pierwsze mecze, aby zobaczyć statystyki par.</p>
+            </div>
+          ) : (
+            <table className="court-stats-table pairs-table">
+              <thead>
+                <tr>
+                  <th className="cst-name">Para</th>
+                  <th className="cst-num">Mecze</th>
+                  <th className="cst-num">Wygrane</th>
+                  <th className="cst-num">% wygranych</th>
+                  <th className="cst-num">Pkt zdobyte</th>
+                  <th className="cst-num">Pkt stracone</th>
+                  <th className="cst-num">Śr. wynik</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pairStats.map(({ key, a, b, played, wins, points, against, winRate }) => {
+                  const ca = colorOf(a)
+                  const cb = colorOf(b)
+                  const avgFor = played > 0 ? (points / played).toFixed(1) : '–'
+                  const avgAgainst = played > 0 ? (against / played).toFixed(1) : '–'
+                  return (
+                    <tr key={key} className="cst-row">
+                      <td className="cst-name pair-names">
+                        <span className="rank-dot" style={{ background: ca.color }} />
+                        <span style={{ color: ca.color }}>{a}</span>
+                        <span className="pair-amp">&amp;</span>
+                        <span className="rank-dot" style={{ background: cb.color }} />
+                        <span style={{ color: cb.color }}>{b}</span>
+                      </td>
+                      <td className="cst-num">{played}</td>
+                      <td className="cst-num cst-total">{wins}</td>
+                      <td className="cst-num">
+                        <span className={`pair-rate ${winRate >= 50 ? 'pair-rate-win' : 'pair-rate-lose'}`}>
+                          {winRate.toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="cst-num">{points}</td>
+                      <td className="cst-num cst-pause">{against}</td>
+                      <td className="cst-num pair-avg-score">
+                        <span className="pair-rate-win">{avgFor}</span>
+                        <span className="pair-avg-sep"> : </span>
+                        <span className="pair-rate-lose">{avgAgainst}</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       {tab === 'chart' && (() => {
         const totalMs = Object.values(courtTime).reduce((s, v) => s + v, 0)
         const sessionMs = matches
@@ -627,7 +741,14 @@ function App() {
               m.timestamp && m.startTimestamp &&
               (m.team1.includes(p) || m.team2.includes(p))
             ).length
-            return { p, total: courtTime[p], count, avg: count > 0 ? courtTime[p] / count : 0 }
+            return {
+              p,
+              total: courtTime[p],
+              count,
+              avg: count > 0 ? courtTime[p] / count : 0,
+              pauseTotal: pauseTime.time[p],
+              pauseCount: pauseTime.count[p],
+            }
           })
           .sort((a, b) => b.total - a.total)
 
@@ -642,31 +763,19 @@ function App() {
                 <text x={cx} y={cy + 14} className="chart-center-value">{fmtMs(sessionMs)}</text>
               </svg>
             </div>
-            <div className="chart-legend">
-              {playerNames.map(p => {
-                const c = colorOf(p)
-                const pct = totalMs > 0 ? (courtTime[p] / totalMs * 100).toFixed(0) : '0'
-                return (
-                  <div key={p} className="chart-legend-row">
-                    <span className="chart-legend-dot" style={{ background: c.color }} />
-                    <span className="chart-legend-name" style={{ color: c.color }}>{p}</span>
-                    <span className="chart-legend-time">{fmtMs(courtTime[p])}</span>
-                    <span className="chart-legend-pct">{pct}%</span>
-                  </div>
-                )
-              })}
-            </div>
             <table className="court-stats-table">
               <thead>
                 <tr>
                   <th className="cst-name">Gracz</th>
-                  <th className="cst-num">Łącznie</th>
+                  <th className="cst-num">Na korcie</th>
                   <th className="cst-num">Mecze</th>
                   <th className="cst-num">Śr. / mecz</th>
+                  <th className="cst-num cst-pause">Pauzy</th>
+                  <th className="cst-num cst-pause">Czas pauz</th>
                 </tr>
               </thead>
               <tbody>
-                {courtStats.map(({ p, total, count, avg }, i) => {
+                {courtStats.map(({ p, total, count, avg, pauseTotal, pauseCount }) => {
                   const c = colorOf(p)
                   return (
                     <tr key={p} className="cst-row">
@@ -677,6 +786,8 @@ function App() {
                       <td className="cst-num cst-total">{fmtMs(total)}</td>
                       <td className="cst-num">{count}</td>
                       <td className="cst-num cst-avg">{count > 0 ? fmtMs(avg) : '–'}</td>
+                      <td className="cst-num cst-pause">{pauseCount}</td>
+                      <td className="cst-num cst-pause">{pauseTotal > 0 ? fmtMs(pauseTotal) : '–'}</td>
                     </tr>
                   )
                 })}

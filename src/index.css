@@ -757,6 +757,48 @@ h1 {
   color: #888;
 }
 
+.cst-pause {
+  color: #666;
+  border-left: 1px solid #2a2a2a;
+}
+
+.pairs-tab {
+  margin-top: 1rem;
+}
+
+.pairs-table .cst-name.pair-names {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.pair-amp {
+  color: #555;
+  font-size: 0.75rem;
+  margin: 0 0.1rem;
+}
+
+.pair-rate {
+  font-weight: 600;
+}
+
+.pair-rate-win {
+  color: #4ade80;
+}
+
+.pair-rate-lose {
+  color: #f87171;
+}
+
+.pair-avg-score {
+  white-space: nowrap;
+}
+
+.pair-avg-sep {
+  color: #555;
+}
+
 .pausing-bar {
   display: flex;
   align-items: center;
