@@ -24,7 +24,7 @@ function App() {
   const [playerNames, setPlayerNames] = useState<string[]>(DEFAULT_NAMES)
   const [matches, setMatches] = useState<Match[]>([])
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all')
-  const [tab, setTab] = useState<'matches' | 'ranking' | 'matrix'>('matches')
+  const [tab, setTab] = useState<'matches' | 'ranking' | 'chart'>('matches')
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [endedAt, setEndedAt] = useState<number | null>(null)
   const [showEndModal, setShowEndModal] = useState(false)
@@ -165,27 +165,17 @@ function App() {
     return true
   })
 
-  // Wszystkie pary graczy (dla macierzy)
-  const allPairs = useMemo<[string, string][]>(() => {
-    const pairs: [string, string][] = []
-    for (let i = 0; i < playerNames.length; i++)
-      for (let j = i + 1; j < playerNames.length; j++)
-        pairs.push([playerNames[i], playerNames[j]])
-    return pairs
-  }, [playerNames])
-
-  // Mapa wyników: "A&B vs C&D" i "C&D vs A&B" → { score1, score2 }
-  const scoreMap = useMemo(() => {
-    const map = new Map<string, { score1: string; score2: string }>()
+  const courtTime = useMemo(() => {
+    const time: Record<string, number> = {}
+    playerNames.forEach(p => (time[p] = 0))
     for (const m of matches) {
-      if (m.score1 === '' && m.score2 === '') continue
-      const k1 = `${m.team1[0]}&${m.team1[1]}|${m.team2[0]}&${m.team2[1]}`
-      const k2 = `${m.team2[0]}&${m.team2[1]}|${m.team1[0]}&${m.team1[1]}`
-      map.set(k1, { score1: m.score1, score2: m.score2 })
-      map.set(k2, { score1: m.score2, score2: m.score1 })
+      if (m.timestamp && m.startTimestamp) {
+        const dur = m.timestamp - m.startTimestamp
+        ;[...m.team1, ...m.team2].forEach(p => (time[p] += dur))
+      }
     }
-    return map
-  }, [matches])
+    return time
+  }, [matches, playerNames])
 
   const PAUSE_POINTS = 11
 
@@ -226,9 +216,15 @@ function App() {
       .sort((a, b) => b.total - a.total || b.wins - a.wins)
   }, [matches, playerNames])
 
-  const pairLabel = (p: [string, string]) => `${p[0]} & ${p[1]}`
-  const pairKey = (r: [string, string], c: [string, string]) =>
-    `${r[0]}&${r[1]}|${c[0]}&${c[1]}`
+  const fmtMs = (ms: number) => {
+    const s = Math.floor(ms / 1000)
+    const h = Math.floor(s / 3600)
+    const m = Math.floor((s % 3600) / 60)
+    const sec = s % 60
+    if (h > 0) return `${h}h ${m}min`
+    if (m > 0) return `${m}min ${sec}s`
+    return `${sec}s`
+  }
 
   if (step === 'setup') {
     return (
@@ -350,7 +346,7 @@ function App() {
       <div className="tab-row">
         <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}>Mecze</button>
         <button className={`tab-btn ${tab === 'ranking' ? 'active' : ''}`} onClick={() => setTab('ranking')}>Ranking</button>
-        <button className={`tab-btn ${tab === 'matrix' ? 'active' : ''}`} onClick={() => setTab('matrix')}>Matrix</button>
+        <button className={`tab-btn ${tab === 'chart' ? 'active' : ''}`} onClick={() => setTab('chart')}>Czas na korcie</button>
       </div>
 
       {tab === 'matches' && (
@@ -564,62 +560,66 @@ function App() {
         </div>
       )}
 
-      {tab === 'matrix' && (
-        <div className="matrix-wrap">
-          <table className="matrix-table">
-            <thead>
-              <tr>
-                <th className="matrix-corner" />
-                {allPairs.map((col, ci) => (
-                  <th key={ci} className="matrix-col-th">
-                    <div className="matrix-col-header-rotated">
-                      <span style={{ color: colorOf(col[0]).color }}>{col[0]}</span>
-                      <span className="matrix-amp"> & </span>
-                      <span style={{ color: colorOf(col[1]).color }}>{col[1]}</span>
-                    </div>
-                  </th>
+      {tab === 'chart' && (() => {
+        const totalMs = Object.values(courtTime).reduce((s, v) => s + v, 0)
+        const sessionMs = matches
+          .filter(m => m.timestamp && m.startTimestamp)
+          .reduce((s, m) => s + (m.timestamp! - m.startTimestamp!), 0)
+
+        if (totalMs === 0) return (
+          <div className="chart-empty">
+            <p>Zagraj pierwsze mecze, aby zobaczyć statystyki czasu na korcie.</p>
+          </div>
+        )
+
+        const cx = 150, cy = 150, outerR = 120, innerR = 60
+        let angle = -Math.PI / 2
+        const slices = playerNames
+          .filter(p => courtTime[p] > 0)
+          .map(p => {
+            const sweep = (courtTime[p] / totalMs) * 2 * Math.PI
+            const a0 = angle
+            angle += sweep
+            const a1 = angle
+            const large = sweep > Math.PI ? 1 : 0
+            const path = [
+              `M ${cx + outerR * Math.cos(a0)} ${cy + outerR * Math.sin(a0)}`,
+              `A ${outerR} ${outerR} 0 ${large} 1 ${cx + outerR * Math.cos(a1)} ${cy + outerR * Math.sin(a1)}`,
+              `L ${cx + innerR * Math.cos(a1)} ${cy + innerR * Math.sin(a1)}`,
+              `A ${innerR} ${innerR} 0 ${large} 0 ${cx + innerR * Math.cos(a0)} ${cy + innerR * Math.sin(a0)}`,
+              'Z',
+            ].join(' ')
+            return { p, path, color: colorOf(p).color }
+          })
+
+        return (
+          <div className="chart-wrap">
+            <div className="chart-donut-wrap">
+              <svg viewBox="0 0 300 300" className="chart-svg">
+                {slices.map(s => (
+                  <path key={s.p} d={s.path} fill={s.color} stroke="#0f0f0f" strokeWidth="3" />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {allPairs.map((row, ri) => (
-                <tr key={ri}>
-                  <td className="matrix-row-header">
-                    <span style={{ color: colorOf(row[0]).color }}>{row[0]}</span>
-                    <span className="matrix-amp"> & </span>
-                    <span style={{ color: colorOf(row[1]).color }}>{row[1]}</span>
-                  </td>
-                  {allPairs.map((col, ci) => {
-                    // górny trójkąt: pokazujemy tylko ci > ri
-                    if (ci <= ri) return <td key={ci} className="matrix-cell matrix-cell-skip" />
-
-                    const sharePlayer = row[0] === col[0] || row[0] === col[1] || row[1] === col[0] || row[1] === col[1]
-                    if (sharePlayer) return <td key={ci} className="matrix-cell matrix-cell-invalid" />
-
-                    const result = scoreMap.get(pairKey(row, col))
-                    if (!result) return <td key={ci} className="matrix-cell matrix-cell-empty">–</td>
-
-                    const rs = parseInt(result.score1)
-                    const cs = parseInt(result.score2)
-                    const won = rs > cs
-                    return (
-                      <td key={ci} className="matrix-cell matrix-cell-done">
-                        <span className={`matrix-score ${won ? 'matrix-win' : 'matrix-loss'}`}>
-                          {rs}
-                        </span>
-                        <span className="matrix-score-sep">:</span>
-                        <span className={`matrix-score ${won ? 'matrix-loss' : 'matrix-win'}`}>
-                          {cs}
-                        </span>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                <text x={cx} y={cy - 10} className="chart-center-label">czas sesji</text>
+                <text x={cx} y={cy + 14} className="chart-center-value">{fmtMs(sessionMs)}</text>
+              </svg>
+            </div>
+            <div className="chart-legend">
+              {playerNames.map(p => {
+                const c = colorOf(p)
+                const pct = totalMs > 0 ? (courtTime[p] / totalMs * 100).toFixed(0) : '0'
+                return (
+                  <div key={p} className="chart-legend-row">
+                    <span className="chart-legend-dot" style={{ background: c.color }} />
+                    <span className="chart-legend-name" style={{ color: c.color }}>{p}</span>
+                    <span className="chart-legend-time">{fmtMs(courtTime[p])}</span>
+                    <span className="chart-legend-pct">{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

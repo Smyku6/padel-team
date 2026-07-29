@@ -622,98 +622,88 @@ h1 {
 
 /* Matrix */
 
-.matrix-wrap {
-  overflow-x: auto;
-  border-radius: 10px;
-  border: 1px solid #2a2a2a;
-}
-
-.matrix-table {
-  border-collapse: collapse;
-  font-size: 0.78rem;
-}
-
-.matrix-corner {
-  background: #0f0f0f;
-  min-width: 130px;
-}
-
-/* Rotated column headers */
-.matrix-col-th {
-  padding: 0;
-  height: 130px;
-  vertical-align: bottom;
-  width: 44px;
-  min-width: 44px;
-  background: #0f0f0f;
-  border-left: 1px solid #1e1e1e;
-}
-
-.matrix-col-header-rotated {
-  display: block;
-  white-space: nowrap;
-  font-weight: 600;
-  font-size: 0.75rem;
-  transform-origin: left bottom;
-  transform: rotate(-45deg) translateY(-4px);
-  padding-left: 4px;
-  width: max-content;
-}
-
-.matrix-amp {
-  color: #444;
-  font-size: 0.65rem;
-}
-
-.matrix-row-header {
-  background: #141414;
-  padding: 0.35rem 0.75rem;
-  border-bottom: 1px solid #1e1e1e;
-  border-right: 2px solid #2a2a2a;
-  white-space: nowrap;
-  font-weight: 600;
-  font-size: 0.8rem;
-}
-
-.matrix-cell {
+.chart-empty {
   text-align: center;
-  padding: 0.3rem 0.2rem;
-  border-left: 1px solid #1a1a1a;
-  border-bottom: 1px solid #1a1a1a;
-  width: 44px;
-  min-width: 44px;
+  color: #555;
+  padding: 3rem 1rem;
+  font-size: 0.9rem;
 }
 
-.matrix-cell-skip {
-  background: #0a0a0a;
+.chart-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 1rem 0 2rem;
 }
 
-.matrix-cell-invalid {
-  background: #111;
+.chart-donut-wrap {
+  width: 100%;
+  max-width: 300px;
 }
 
-.matrix-cell-empty {
-  color: #2a2a2a;
-  font-size: 0.7rem;
+.chart-svg {
+  width: 100%;
+  height: auto;
 }
 
-.matrix-cell-done {
-  background: #0d1a0d;
+.chart-center-label {
+  fill: #555;
+  font-size: 13px;
+  text-anchor: middle;
+  dominant-baseline: middle;
 }
 
-.matrix-score {
-  font-weight: 800;
-  font-size: 0.8rem;
+.chart-center-value {
+  fill: #e0e0e0;
+  font-size: 18px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: middle;
 }
 
-.matrix-score-sep {
-  color: #333;
-  font-weight: 400;
-  margin: 0 1px;
+.chart-legend {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.matrix-win  { color: #4ade80; }
-.matrix-loss { color: #f87171; }
+.chart-legend-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: #141414;
+  border-radius: 8px;
+  border: 1px solid #1e1e1e;
+}
+
+.chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-legend-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.chart-legend-time {
+  font-size: 0.85rem;
+  color: #ccc;
+  font-weight: 500;
+}
+
+.chart-legend-pct {
+  font-size: 0.75rem;
+  color: #555;
+  min-width: 36px;
+  text-align: right;
+}
 
 .pausing-bar {
   display: flex;
