@@ -67,6 +67,20 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!readOnly || !startedAt) return
+    const d = new Date(startedAt)
+    const rounded = Math.round(d.getMinutes() / 30) * 30
+    d.setMinutes(rounded, 0, 0)
+    const weekday = d.toLocaleDateString('pl-PL', { weekday: 'long' })
+    const cap = weekday.charAt(0).toUpperCase() + weekday.slice(1)
+    const day = d.getDate()
+    const month = d.toLocaleDateString('pl-PL', { month: 'long' })
+    const year = d.getFullYear()
+    const time = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+    document.title = `Padel Team - ${cap} ${day}. ${month} ${year} ${time}`
+  }, [readOnly, startedAt])
+
   function handlePlayerCountChange(count: number) {
     setPlayerCount(count)
     setPlayerNames(prev => {
