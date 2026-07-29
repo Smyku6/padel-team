@@ -151,6 +151,34 @@ function App() {
     exportToJson(saved, `padel-wyniki-${new Date().toISOString().slice(0, 10)}.json`)
   }
 
+  function handleImport() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string) as SessionData
+          if (!data.players || !data.matches) throw new Error()
+          saveToStorage(STORAGE_KEY, data)
+          setPlayerNames(data.players)
+          setPlayerCount(data.players.length)
+          setMatches(data.matches)
+          setStartedAt(data.startedAt ?? null)
+          setEndedAt(data.endedAt ?? null)
+          setStep('matches')
+        } catch {
+          alert('Nieprawidłowy plik JSON — brak wymaganych pól players/matches.')
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
+  }
+
   const allFilled = playerNames.every(n => n.trim().length > 0)
   const uniqueNames = new Set(playerNames.map(n => n.trim().toLowerCase()))
   const hasDuplicates = uniqueNames.size !== playerNames.length
@@ -282,6 +310,7 @@ function App() {
       <div className="header-row">
         <h1>Padel Team</h1>
         <div className="header-actions">
+          <button className="btn-secondary" onClick={handleImport}>Import JSON</button>
           <button className="btn-secondary" onClick={handleExport}>Eksport JSON</button>
           <button className="btn-danger" onClick={handleReset}>Reset</button>
         </div>
