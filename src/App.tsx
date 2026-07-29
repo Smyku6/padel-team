@@ -28,6 +28,9 @@ function App() {
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [endedAt, setEndedAt] = useState<number | null>(null)
   const [showEndModal, setShowEndModal] = useState(false)
+  const [readOnly, setReadOnly] = useState(false)
+  const [shareId, setShareId] = useState<string | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const colorOf = (name: string) => {
     const idx = playerNames.indexOf(name)
@@ -35,6 +38,24 @@ function App() {
   }
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const sid = params.get('s')
+    if (sid) {
+      setShareId(sid)
+      setReadOnly(true)
+      fetch(`${import.meta.env.BASE_URL}sessions/${sid}.json`)
+        .then(r => { if (!r.ok) throw new Error(); return r.json() })
+        .then((data: SessionData) => {
+          setPlayerNames(data.players)
+          setPlayerCount(data.players.length)
+          setMatches(data.matches)
+          setStartedAt(data.startedAt ?? null)
+          setEndedAt(data.endedAt ?? null)
+          setStep('matches')
+        })
+        .catch(() => alert('Nie znaleziono sesji o podanym ID.'))
+      return
+    }
     const saved = loadFromStorage<SessionData>(STORAGE_KEY)
     if (saved) {
       setPlayerNames(saved.players)
@@ -364,11 +385,22 @@ function App() {
   return (
     <div className="container">
       <div className="header-row">
-        <h1>Padel Team</h1>
+        <h1>Padel Team {readOnly && <span className="readonly-badge">tylko do odczytu</span>}</h1>
         <div className="header-actions">
-          <button className="btn-secondary" onClick={handleImport}>Import JSON</button>
+          {!readOnly && <button className="btn-secondary" onClick={handleImport}>Import JSON</button>}
           <button className="btn-secondary" onClick={handleExport}>Eksport JSON</button>
-          <button className="btn-danger" onClick={handleReset}>Reset</button>
+          {shareId && (
+            <button className="btn-share" onClick={() => {
+              const url = `${window.location.origin}${window.location.pathname}?s=${shareId}`
+              navigator.clipboard.writeText(url).then(() => {
+                setShareCopied(true)
+                setTimeout(() => setShareCopied(false), 2000)
+              })
+            }}>
+              {shareCopied ? 'Skopiowano!' : 'Kopiuj link'}
+            </button>
+          )}
+          {!readOnly && <button className="btn-danger" onClick={handleReset}>Reset</button>}
         </div>
       </div>
 
@@ -408,9 +440,11 @@ function App() {
               </span>
             </div>
           ) : (
-            <button className="btn-end-tournament" onClick={() => setShowEndModal(true)}>
-              Zakończ turniej
-            </button>
+            !readOnly && (
+              <button className="btn-end-tournament" onClick={() => setShowEndModal(true)}>
+                Zakończ turniej
+              </button>
+            )
           )}
         </div>
       )}
@@ -519,8 +553,10 @@ function App() {
                               <span className="half-amp">&</span>
                               <span className="half-player" style={{ color: colorOf(match.team1[1]).color }}>{match.team1[1]}</span>
                             </div>
-                            <input className="half-score" type="number" min="0" max="21" placeholder="–"
-                              value={match.score1} onChange={e => handleScoreChange(match.id, 'score1', e.target.value)} />
+                            {readOnly
+                              ? <span className="half-score-ro">{match.score1 !== '' ? match.score1 : '–'}</span>
+                              : <input className="half-score" type="number" min="0" max="21" placeholder="–"
+                                  value={match.score1} onChange={e => handleScoreChange(match.id, 'score1', e.target.value)} />}
                           </div>
                           <div className="match-divider">
                             <span className="divider-vs">vs</span>
@@ -531,8 +567,10 @@ function App() {
                               <span className="half-amp">&</span>
                               <span className="half-player" style={{ color: colorOf(match.team2[1]).color }}>{match.team2[1]}</span>
                             </div>
-                            <input className="half-score" type="number" min="0" max="21" placeholder="–"
-                              value={match.score2} onChange={e => handleScoreChange(match.id, 'score2', e.target.value)} />
+                            {readOnly
+                              ? <span className="half-score-ro">{match.score2 !== '' ? match.score2 : '–'}</span>
+                              : <input className="half-score" type="number" min="0" max="21" placeholder="–"
+                                  value={match.score2} onChange={e => handleScoreChange(match.id, 'score2', e.target.value)} />}
                           </div>
                         </div>
                       </div>

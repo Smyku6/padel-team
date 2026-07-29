@@ -1,0 +1,239 @@
+{
+  "players": [
+    "Adam",
+    "Paweł",
+    "Stefan",
+    "Dawid",
+    "Bartosz"
+  ],
+  "matches": [
+    {
+      "id": "Adam-Paweł_vs_Stefan-Dawid",
+      "team1": [
+        "Adam",
+        "Paweł"
+      ],
+      "team2": [
+        "Stefan",
+        "Dawid"
+      ],
+      "score1": "11",
+      "score2": "10",
+      "startTimestamp": 1785253043324,
+      "timestamp": 1785253637245
+    },
+    {
+      "id": "Adam-Stefan_vs_Paweł-Bartosz",
+      "team1": [
+        "Adam",
+        "Stefan"
+      ],
+      "team2": [
+        "Paweł",
+        "Bartosz"
+      ],
+      "score1": "7",
+      "score2": "14",
+      "startTimestamp": 1785253637245,
+      "timestamp": 1785254120678
+    },
+    {
+      "id": "Adam-Dawid_vs_Stefan-Bartosz",
+      "team1": [
+        "Adam",
+        "Dawid"
+      ],
+      "team2": [
+        "Stefan",
+        "Bartosz"
+      ],
+      "score1": "10",
+      "score2": "11",
+      "startTimestamp": 1785254120678,
+      "timestamp": 1785254624529
+    },
+    {
+      "id": "Adam-Bartosz_vs_Paweł-Dawid",
+      "team1": [
+        "Adam",
+        "Bartosz"
+      ],
+      "team2": [
+        "Paweł",
+        "Dawid"
+      ],
+      "score1": "9",
+      "score2": "12",
+      "startTimestamp": 1785254624529,
+      "timestamp": 1785255196673
+    },
+    {
+      "id": "Paweł-Stefan_vs_Dawid-Bartosz",
+      "team1": [
+        "Paweł",
+        "Stefan"
+      ],
+      "team2": [
+        "Dawid",
+        "Bartosz"
+      ],
+      "score1": "14",
+      "score2": "7",
+      "startTimestamp": 1785255196673,
+      "timestamp": 1785255661865
+    },
+    {
+      "id": "Adam-Bartosz_vs_Stefan-Dawid",
+      "team1": [
+        "Adam",
+        "Bartosz"
+      ],
+      "team2": [
+        "Stefan",
+        "Dawid"
+      ],
+      "score1": "10",
+      "score2": "11",
+      "startTimestamp": 1785255661865,
+      "timestamp": 1785256158550
+    },
+    {
+      "id": "Adam-Dawid_vs_Paweł-Bartosz",
+      "team1": [
+        "Adam",
+        "Dawid"
+      ],
+      "team2": [
+        "Paweł",
+        "Bartosz"
+      ],
+      "score1": "8",
+      "score2": "13",
+      "startTimestamp": 1785256158550,
+      "timestamp": 1785256692332
+    },
+    {
+      "id": "Paweł-Dawid_vs_Stefan-Bartosz",
+      "team1": [
+        "Paweł",
+        "Dawid"
+      ],
+      "team2": [
+        "Stefan",
+        "Bartosz"
+      ],
+      "score1": "14",
+      "score2": "7",
+      "startTimestamp": 1785256692332,
+      "timestamp": 1785257225515
+    },
+    {
+      "id": "Adam-Dawid_vs_Paweł-Stefan",
+      "team1": [
+        "Adam",
+        "Dawid"
+      ],
+      "team2": [
+        "Paweł",
+        "Stefan"
+      ],
+      "score1": "8",
+      "score2": "13",
+      "startTimestamp": 1785257225515,
+      "timestamp": 1785257702876
+    },
+    {
+      "id": "Adam-Paweł_vs_Stefan-Bartosz",
+      "team1": [
+        "Adam",
+        "Paweł"
+      ],
+      "team2": [
+        "Stefan",
+        "Bartosz"
+      ],
+      "score1": "10",
+      "score2": "11",
+      "startTimestamp": 1785257702876,
+      "timestamp": 1785258296904
+    },
+    {
+      "id": "Paweł-Bartosz_vs_Stefan-Dawid",
+      "team1": [
+        "Paweł",
+        "Bartosz"
+      ],
+      "team2": [
+        "Stefan",
+        "Dawid"
+      ],
+      "score1": "9",
+      "score2": "12",
+      "startTimestamp": 1785258296904,
+      "timestamp": 1785258789083
+    },
+    {
+      "id": "Adam-Stefan_vs_Paweł-Dawid",
+      "team1": [
+        "Adam",
+        "Stefan"
+      ],
+      "team2": [
+        "Paweł",
+        "Dawid"
+      ],
+      "score1": "10",
+      "score2": "11",
+      "startTimestamp": 1785258789083,
+      "timestamp": 1785259286549
+    },
+    {
+      "id": "Adam-Bartosz_vs_Paweł-Stefan",
+      "team1": [
+        "Adam",
+        "Bartosz"
+      ],
+      "team2": [
+        "Paweł",
+        "Stefan"
+      ],
+      "score1": "6",
+      "score2": "15",
+      "startTimestamp": 1785259286549,
+      "timestamp": 1785259906985
+    },
+    {
+      "id": "Adam-Stefan_vs_Dawid-Bartosz",
+      "team1": [
+        "Adam",
+        "Stefan"
+      ],
+      "team2": [
+        "Dawid",
+        "Bartosz"
+      ],
+      "score1": "",
+      "score2": "",
+      "startTimestamp": null,
+      "timestamp": null
+    },
+    {
+      "id": "Adam-Paweł_vs_Dawid-Bartosz",
+      "team1": [
+        "Adam",
+        "Paweł"
+      ],
+      "team2": [
+        "Dawid",
+        "Bartosz"
+      ],
+      "score1": "",
+      "score2": "",
+      "startTimestamp": null,
+      "timestamp": null
+    }
+  ],
+  "createdAt": 1785259907119,
+  "startedAt": 1785253043324,
+  "endedAt": 1785259918391
+}
